@@ -1,0 +1,3 @@
+# Deps for retro games
+# ./.venv by setupenv.sh.
+pygame-ce
