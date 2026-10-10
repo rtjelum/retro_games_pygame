@@ -23,6 +23,8 @@ standard library.
 
 This sets everything up and starts the game menu.
 
+<img src="screenshots/menu.png" width="560" alt="Game menu">
+
 ## The games
 
 ### 2048
