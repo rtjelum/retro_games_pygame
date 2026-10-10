@@ -17,19 +17,11 @@ standard library.
 
 ## Setup
 
-Requires Python 3. The Tkinter games also need a Python build with Tk
-(on Homebrew: `brew install python-tk`).
-
 ```bash
-bash setupenv.sh            # creates .venv and installs requirements.txt
-source .venv/bin/activate
-python menu.py              # game menu: pick a game and play
-python sokoban.py           # or run any game file directly
+./setupenv.sh
 ```
 
-In the menu, choose a game with the **arrow keys** or the mouse and press
-**Enter** (or click) to play. Closing the game brings you back to the menu;
-**Esc** quits.
+This sets everything up and starts the game menu.
 
 ## The games
 
