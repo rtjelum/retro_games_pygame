@@ -42,6 +42,14 @@
     echo "Virtual environment setup complete."
     echo "To activate the environment in your current shell, run:"
     echo "source $VENV_DIR/bin/activate"
+    echo ""
+    echo "Then start the game menu with:"
+    echo "python menu.py"
     echo "========================================="
+
+    # Start the game menu
+    echo ""
+    echo "Starting the game menu..."
+    python menu.py
 
 

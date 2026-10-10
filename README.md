@@ -23,8 +23,13 @@ Requires Python 3. The Tkinter games also need a Python build with Tk
 ```bash
 bash setupenv.sh            # creates .venv and installs requirements.txt
 source .venv/bin/activate
-python sokoban.py           # or any of the other game files
+python menu.py              # game menu: pick a game and play
+python sokoban.py           # or run any game file directly
 ```
+
+In the menu, choose a game with the **arrow keys** or the mouse and press
+**Enter** (or click) to play. Closing the game brings you back to the menu;
+**Esc** quits.
 
 ## The games
 
