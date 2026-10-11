@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+import math
 
 # Initialize Pygame
 pygame.init()
@@ -16,6 +17,9 @@ BLACK = (0, 0, 0)
 BLUE = (50, 120, 255)
 TEXT_COLOR = (30, 30, 30)
 GRAY = (200, 200, 200)
+GREEN = (0, 150, 60)
+CONFETTI_COLORS = [(225, 50, 50), (50, 190, 80), (50, 110, 235), (245, 205, 40),
+                   (170, 70, 220), (40, 200, 215), (255, 170, 40)]
 
 # Game Settings
 CELL_SIZE = WIDTH // 9
@@ -84,6 +88,9 @@ class SudokuGame:
         self.fixed_cells = [[(self.board[r][c] != 0) for c in range(9)] for r in range(9)]
         
         self.selected = None
+        self.won = False
+        self.confetti = []
+        self.dt = 0
         self.font = pygame.font.SysFont("comicsans", 40)
         self.small_font = pygame.font.SysFont("comicsans", 20)
 
@@ -113,8 +120,49 @@ class SudokuGame:
             pygame.draw.rect(SCREEN, BLUE, (c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE), 3)
 
         # UI
-        instr = self.small_font.render("Press 'R' to Regenerate | Click to select | Type to fill", True, BLACK)
-        SCREEN.blit(instr, (10, 550))
+        if self.won:
+            instr = self.small_font.render("Solved! Press 'R' for a new puzzle", True, GREEN)
+            SCREEN.blit(instr, instr.get_rect(center=(WIDTH // 2, 570)))
+        else:
+            instr = self.small_font.render("Press 'R' to Regenerate | Click to select | Type to fill", True, BLACK)
+            SCREEN.blit(instr, (10, 550))
+
+        self.draw_confetti()
+
+    def spawn_confetti(self):
+        for _ in range(160):
+            self.confetti.append({
+                "x": random.uniform(0, WIDTH),
+                "y": random.uniform(-HEIGHT * 0.6, 0),
+                "vx": random.uniform(-60, 60),
+                "vy": random.uniform(120, 320),
+                "w": random.randint(5, 10),
+                "h": random.randint(8, 14),
+                "phase": random.uniform(0, 6.28),
+                "color": random.choice(CONFETTI_COLORS),
+            })
+
+    def draw_confetti(self):
+        now = pygame.time.get_ticks()
+        for p in self.confetti:
+            p["x"] += p["vx"] * self.dt
+            p["y"] += p["vy"] * self.dt
+            # Flutter: squash the height as the piece "spins"
+            h = max(2, int(p["h"] * abs(math.cos(math.radians(now * 0.5) + p["phase"]))))
+            pygame.draw.rect(SCREEN, p["color"], (p["x"], p["y"], p["w"], h))
+        self.confetti = [p for p in self.confetti if p["y"] < HEIGHT + 20]
+
+    def is_solved(self):
+        """True when every row, column and 3x3 box contains 1-9 exactly once."""
+        target = set(range(1, 10))
+        for i in range(9):
+            row = set(self.board[i])
+            col = set(self.board[r][i] for r in range(9))
+            br, bc = 3 * (i // 3), 3 * (i % 3)
+            box = set(self.board[br + r][bc + c] for r in range(3) for c in range(3))
+            if row != target or col != target or box != target:
+                return False
+        return True
 
     def handle_click(self, pos):
         x, y = pos
@@ -138,6 +186,8 @@ class SudokuGame:
         self.board = self.generator.generate_puzzle(difficulty=40)
         self.fixed_cells = [[(self.board[r][c] != 0) for c in range(9)] for r in range(9)]
         self.selected = None
+        self.won = False
+        self.confetti = []
 
 def main():
     game = SudokuGame()
@@ -161,16 +211,19 @@ def main():
                     game.reset_game()
                 else:
                     # Handle number input
-                    if game.selected:
+                    if game.selected and not game.won:
                         r, c = game.selected
                         if not game.fixed_cells[r][c]:
                             if event.unicode.isdigit():
                                 game.board[r][c] = int(event.unicode)
                             elif event.key in [pygame.K_BACKSPACE, pygame.K_DELETE]:
                                 game.board[r][c] = 0
+                            if game.is_solved():
+                                game.won = True
+                                game.spawn_confetti()
 
         pygame.display.flip()
-        clock.tick(30)
+        game.dt = clock.tick(60) / 1000
 
 if __name__ == "__main__":
     main()
