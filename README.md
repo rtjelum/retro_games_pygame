@@ -1,16 +1,18 @@
 # Retro Games
 
-Eight small retro games in Python, one file each. Five are built with
+Ten small retro games in Python, one file each. Seven are built with
 [pygame-ce](https://pyga.me/); three use Tkinter and need nothing beyond the
 standard library.
 
 | Game | File | Toolkit |
 | --- | --- | --- |
 | [2048](#2048) | `2048_game.py` | Tkinter |
+| [Car Park](#car-park) | `car_park.py` | pygame |
 | [Flabby Bird](#flabby-bird) | `flabby_bird.py` | pygame |
 | [Mastermind](#mastermind) | `mastermind.py` | pygame |
 | [Maze](#maze) | `maze_game.py` | Tkinter |
 | [Minesweeper](#minesweeper) | `minesweeper.py` | pygame |
+| [Snake Escape](#snake-escape) | `snake_escape.py` | pygame |
 | [Sokoban](#sokoban) | `sokoban.py` | pygame |
 | [Sudoku](#sudoku) | `sudoku.py` | pygame |
 | [Tetris](#tetris) | `tetris_game.py` | Tkinter |
@@ -35,6 +37,24 @@ Slide the tiles and merge matching numbers to reach 2048.
 
 - **Arrow keys** — slide tiles
 - **R** — restart
+
+### Car Park
+
+<img src="screenshots/car_park.png" width="320" alt="Car Park">
+
+A car jam puzzle: slide the cars and trucks out of the way and get the red car
+to the exit. Vehicles only move along their own length. Every puzzle is
+generated on the spot, and the header shows the fewest moves it can be solved
+in.
+
+- **Drag** a vehicle, or pick it with a **click** or **Tab** and use the
+  **arrow keys** (**Shift+Tab** goes back)
+- **1** / **2** / **3** — easy / medium / hard
+- **N** — new puzzle
+- **R** — restart the puzzle
+- **U** / **Z** — undo
+- **H** — hint
+- **Esc** — quit
 
 ### Flabby Bird
 
@@ -77,6 +97,23 @@ A 10×10 board hiding 15 mines.
 - **Left click** — reveal a cell
 - **Right click** — flag / unflag a cell
 - **R** — restart
+
+### Snake Escape
+
+<img src="screenshots/snake_escape.png" width="320" alt="Snake Escape">
+
+Clear the board by sending the snakes off it one at a time. A snake slithers
+straight ahead, the way its arrow points, and only gets out if nothing is in
+its way; bump into another snake three times and the round is over. Every
+puzzle is generated on the spot and has exactly one solution: at any moment
+only one snake is free to go.
+
+- **Click** a snake — send it off
+- **1** / **2** / **3** — easy / medium / hard (board size)
+- **N** — new puzzle
+- **R** — restart the puzzle
+- **H** — hint
+- **Esc** — quit
 
 ### Sokoban
 

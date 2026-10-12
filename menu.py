@@ -32,7 +32,7 @@ THUMB_BG = (16, 17, 30)
 # -----------------------------
 #  Layout
 # -----------------------------
-COLS = 4
+COLS = 5
 MARGIN = 30
 GAP = 20
 GRID_TOP = 110
@@ -46,10 +46,12 @@ BASE_DIR = Path(__file__).parent
 # (title, script, screenshot, toolkit)
 GAMES = [
     ("2048", "2048_game.py", "2048.png", "Tkinter"),
+    ("Car Park", "car_park.py", "car_park.png", "pygame"),
     ("Flabby Bird", "flabby_bird.py", "flabby_bird.png", "pygame"),
     ("Mastermind", "mastermind.py", "mastermind.png", "pygame"),
     ("Maze", "maze_game.py", "maze.png", "Tkinter"),
     ("Minesweeper", "minesweeper.py", "minesweeper.png", "pygame"),
+    ("Snake Escape", "snake_escape.py", "snake_escape.png", "pygame"),
     ("Sokoban", "sokoban.py", "sokoban.png", "pygame"),
     ("Sudoku", "sudoku.py", "sudoku.png", "pygame"),
     ("Tetris", "tetris_game.py", "tetris.png", "Tkinter"),
