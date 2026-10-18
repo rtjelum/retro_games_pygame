@@ -84,8 +84,9 @@ the wrong position.
 
 Guide the knight through the castle's stone corridors to slay the
 fire-breathing dragon in the far corner. Every maze is randomly generated, in
-three sizes: Easy (12×9), Medium (20×15) and Hard (32×24). A trail marks your
-path, and your best time for each size is kept for the session.
+three sizes: Easy (12×9), Medium (20×15, with more dead ends) and Hard
+(26×19, with the most dead ends). A trail marks your path, and your best time
+for each size is kept for the session.
 
 - **Arrow keys** / **WASD** — move (hold to keep going)
 - **1 / 2 / 3** — Easy / Medium / Hard

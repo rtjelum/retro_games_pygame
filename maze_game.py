@@ -20,8 +20,8 @@ BOARD_TOP = 92
 FRAME = 18   # thickness of the battlements around the board
 SPEED = 9    # cells per second while walking
 
-# (name, columns, rows)
-DIFFICULTIES = [("Easy", 12, 9), ("Medium", 20, 15), ("Hard", 32, 24)]
+# (name, columns, rows, branching: how often side passages sprout, for more dead ends)
+DIFFICULTIES = [("Easy", 12, 9, 0.0), ("Medium", 20, 15, 0.3), ("Hard", 26, 19, 0.5)]
 
 SKY_TOP, SKY_BOTTOM = (24, 26, 54), (8, 8, 18)
 STONE, MORTAR = (128, 120, 108), (44, 40, 38)
@@ -44,22 +44,28 @@ FIRE_EVERY, FIRE_FOR = 3.0, 0.9  # seconds between the dragon's breaths, and the
 
 
 # ── Maze generation ─────────────────────────────────────────────────────────
-def generate_maze(cols, rows):
-    """Returns {cell: set of open directions}, carved by a randomised depth-first search."""
+def generate_maze(cols, rows, branching=0.0):
+    """Returns {cell: set of open directions}, carved by a "growing tree" search.
+
+    With branching at 0 it keeps extending the newest passage, giving long winding
+    corridors. Higher values often restart from a random earlier cell instead,
+    which sprouts many more side passages and dead ends.
+    """
     open_sides = {(x, y): set() for x in range(cols) for y in range(rows)}
-    stack, seen = [(0, 0)], {(0, 0)}
-    while stack:
-        x, y = stack[-1]
+    active, seen = [(0, 0)], {(0, 0)}
+    while active:
+        i = random.randrange(len(active)) if random.random() < branching else -1
+        x, y = active[i]
         options = [(d, (x + dx, y + dy)) for d, (dx, dy) in STEPS.items()
                    if (x + dx, y + dy) in open_sides and (x + dx, y + dy) not in seen]
         if not options:
-            stack.pop()
+            active.pop(i)
             continue
         d, nxt = random.choice(options)
         open_sides[(x, y)].add(d)
         open_sides[nxt].add(OPPOSITE[d])
         seen.add(nxt)
-        stack.append(nxt)
+        active.append(nxt)
     return open_sides
 
 
@@ -320,11 +326,11 @@ class MazeGame:
 
     # ── Game state ──────────────────────────────────────────────────────────
     def new_maze(self):
-        _, self.cols, self.rows = DIFFICULTIES[self.difficulty]
+        _, self.cols, self.rows, branching = DIFFICULTIES[self.difficulty]
         self.cell = min(BOARD_W // self.cols, BOARD_H // self.rows)
         self.board_x = (WIDTH - self.cols * self.cell) // 2
         self.board_y = BOARD_TOP + (BOARD_H - self.rows * self.cell) // 2
-        self.maze = generate_maze(self.cols, self.rows)
+        self.maze = generate_maze(self.cols, self.rows, branching)
         self.goal = (self.cols - 1, self.rows - 1)
         self.player = (0, 0)
         self.target = None     # the cell being walked towards
