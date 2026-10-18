@@ -4,7 +4,7 @@ Every maze is randomly generated and has exactly one route between any two
 cells. A trail marks the path you've taken; step back along it to rub it out.
 
 Controls: arrow keys / WASD to move (hold to keep going).
-          1 / 2 / 3 difficulty, N or R new maze, H show the way, Esc quit.
+          1 / 2 / 3 difficulty, R new maze, H show the way, Esc quit.
 """
 import math
 import random
@@ -614,7 +614,7 @@ class MazeGame:
         if best is not None:
             stats += f"    Best {format_time(best)}"
         self.draw_text(stats, self.small_font, TEXT_DIM, midright=(WIDTH - left, 40))
-        self.draw_text("Arrows / WASD move   1/2/3 difficulty   N new maze   H show the way   Esc quit",
+        self.draw_text("Arrows / WASD move   1/2/3 difficulty   R new maze   H show the way   Esc quit",
                        self.small_font, TEXT_DIM, center=(WIDTH // 2, HEIGHT - 26))
 
         if self.state == "won":
@@ -627,7 +627,7 @@ class MazeGame:
             if self.new_best:
                 line += "  -  new best!"
             self.draw_text(line, self.font, WHITE, shadow=2, center=(cx, cy + 30))
-            self.draw_text("Enter = new maze   1/2/3 = change difficulty", self.small_font,
+            self.draw_text("R = new maze   1/2/3 = change difficulty", self.small_font,
                            TEXT_DIM, shadow=2, center=(cx, cy + 68))
 
     def draw(self):
@@ -643,8 +643,7 @@ class MazeGame:
         if key in (pygame.K_1, pygame.K_2, pygame.K_3):
             self.difficulty = key - pygame.K_1
             self.new_maze()
-        elif key in (pygame.K_n, pygame.K_r) or (
-                self.state == "won" and key in (pygame.K_RETURN, pygame.K_KP_ENTER)):
+        elif key == pygame.K_r:
             self.new_maze()
         elif key == pygame.K_h and self.state == "playing":
             self.hint = None if self.hint else solve(self.maze, self.target or self.player, self.goal)

@@ -46,8 +46,8 @@ BASE_DIR = Path(__file__).parent
 # (title, script, screenshot, toolkit)
 GAMES = [
     ("2048", "2048_game.py", "2048.png", "Tkinter"),
+    ("Candy Swap", "candy_swap.py", "candy_swap.png", "pygame"),
     ("Car Park", "car_park.py", "car_park.png", "pygame"),
-    ("Flabby Bird", "flabby_bird.py", "flabby_bird.png", "pygame"),
     ("Mastermind", "mastermind.py", "mastermind.png", "pygame"),
     ("Maze", "maze_game.py", "maze.png", "pygame"),
     ("Minesweeper", "minesweeper.py", "minesweeper.png", "pygame"),

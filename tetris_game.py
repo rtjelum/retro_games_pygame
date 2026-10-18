@@ -171,9 +171,10 @@ class Tetris:
 
     # ---------- Input ----------
     def _on_key(self, event):
+        if event.keysym in ("r", "R"):
+            self._restart()
+            return
         if self.game_over:
-            if event.keysym in ("r", "R"):
-                self._restart()
             return
         if event.keysym == "p" or event.keysym == "P":
             self._toggle_pause()

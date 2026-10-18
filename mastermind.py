@@ -8,7 +8,7 @@ You get 6 attempts. After each guess, you get feedback:
 Controls:
   Click a color (or press 1-6) to place it, click a placed peg to remove it
   Enter / Submit button = submit guess, Backspace = remove last peg
-  R = new game (when finished), Esc = quit
+  R = new game, Esc = quit
 """
 
 import pygame
@@ -560,7 +560,7 @@ class Mastermind:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
-                if event.key == pygame.K_r and self.game_over:
+                if event.key == pygame.K_r:
                     self.reset_game()
                 if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
                     self.submit_guess()

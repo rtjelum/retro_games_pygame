@@ -6,8 +6,8 @@ searched, and one that needs the right number of moves is picked.
 
 Controls: drag a vehicle, or pick it with a click or Tab and use the arrow
           keys (Shift+Tab goes back through them).
-          1 / 2 / 3 difficulty, N new puzzle, R restart, U or Z undo,
-          H hint, Esc quit.
+          1 / 2 / 3 difficulty, N new puzzle, R restart (a new puzzle once
+          solved), U or Z undo, H hint, Esc quit.
 """
 import random
 import sys
@@ -390,7 +390,7 @@ class CarPark:
         center = (WIDTH // 2, BOARD_Y + BOARD // 2)
         if self.vehicles and self.solved:
             self.draw_text("Solved!", self.big_font, TEXT, shadow=3, center=center)
-            self.draw_text(f"{self.moves} moves (best {self.best})   -   Enter = new puzzle",
+            self.draw_text(f"{self.moves} moves (best {self.best})   -   R = new puzzle",
                            self.small_font, SELECT, shadow=2,
                            center=(center[0], center[1] + 50))
         elif banner:
@@ -404,8 +404,8 @@ class CarPark:
         if key in (pygame.K_1, pygame.K_2, pygame.K_3):
             self.difficulty = key - pygame.K_1
             self.new_puzzle()
-        elif key == pygame.K_n or (self.solved and key in (pygame.K_RETURN, pygame.K_KP_ENTER)):
-            self.new_puzzle()
+        elif key == pygame.K_n or (self.solved and key == pygame.K_r):
+            self.new_puzzle()   # once solved, R moves on to a fresh puzzle
         elif key == pygame.K_r:
             self.restart()
         elif self.solved or self.drag:

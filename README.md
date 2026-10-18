@@ -1,14 +1,14 @@
 # Retro Games
 
-Ten small retro games in Python, one file each. Seven are built with
-[pygame-ce](https://pyga.me/); three use Tkinter and need nothing beyond the
+Ten small retro games in Python, one file each. Eight are built with
+[pygame-ce](https://pyga.me/); two use Tkinter and need nothing beyond the
 standard library.
 
 | Game | File | Toolkit |
 | --- | --- | --- |
 | [2048](#2048) | `2048_game.py` | Tkinter |
+| [Candy Swap](#candy-swap) | `candy_swap.py` | pygame |
 | [Car Park](#car-park) | `car_park.py` | pygame |
-| [Flabby Bird](#flabby-bird) | `flabby_bird.py` | pygame |
 | [Mastermind](#mastermind) | `mastermind.py` | pygame |
 | [Maze](#maze) | `maze_game.py` | pygame |
 | [Minesweeper](#minesweeper) | `minesweeper.py` | pygame |
@@ -38,6 +38,32 @@ Slide the tiles and merge matching numbers to reach 2048.
 - **Arrow keys** — slide tiles
 - **R** — restart
 
+### Candy Swap
+
+<img src="screenshots/candy_swap.png" width="320" alt="Candy Swap">
+
+Swap neighbouring candies to line up three or more of a kind. Matches pop, the
+candies above fall into the gaps, and chain reactions score a growing combo
+bonus. Get the best score you can in 30 moves.
+
+Bigger matches make special candies:
+
+- **4 in a line** — striped candy: clears its whole row or column
+- **2×2 square** — fish: swims off and eats 3 random candies
+- **L or T shape** — bomb: blows up the 3×3 square around it
+- **5 in a line** — colour bomb: swap it with a candy to clear every candy of that colour
+
+Swap two specials together for a bigger blast: striped + striped clears a
+cross, striped + bomb a three-wide cross, bomb + bomb a 5×5 square, fish +
+fish sends six fish, a fish with a striped candy or bomb carries it off to a
+random spot, and two colour bombs clear the whole board.
+
+- **Click** a candy and then a neighbour, or **drag** it onto one — swap
+- **Arrow keys** move the cursor, **Space** picks up a candy, then an **arrow** swaps it
+- **H** — hint
+- **R** — new game
+- **Esc** — quit
+
 ### Car Park
 
 <img src="screenshots/car_park.png" width="320" alt="Car Park">
@@ -51,18 +77,10 @@ in.
   **arrow keys** (**Shift+Tab** goes back)
 - **1** / **2** / **3** — easy / medium / hard
 - **N** — new puzzle
-- **R** — restart the puzzle
+- **R** — restart the puzzle (or start a new one once it's solved)
 - **U** / **Z** — undo
 - **H** — hint
 - **Esc** — quit
-
-### Flabby Bird
-
-<img src="screenshots/flabby_bird.png" width="260" alt="Flabby Bird">
-
-Keep the bird in the air and thread it through the gaps in the pipes.
-
-- **Space** — flap (and restart after a crash)
 
 ### Mastermind
 
@@ -75,7 +93,7 @@ the wrong position.
 - **Click a colour** or **1–6** — place a peg
 - **Click a placed peg** / **Backspace** — remove a peg
 - **Enter** or the **Submit** button — submit the guess
-- **R** — new game (once the round is over)
+- **R** — new game
 - **Esc** — quit
 
 ### Maze
@@ -90,7 +108,7 @@ for each size is kept for the session.
 
 - **Arrow keys** / **WASD** — move (hold to keep going)
 - **1 / 2 / 3** — Easy / Medium / Hard
-- **N** / **R** — new maze (**Enter** too, after winning)
+- **R** — new maze
 - **H** — show the way
 - **Esc** — quit
 
@@ -117,7 +135,7 @@ only one snake is free to go.
 - **Click** a snake — send it off
 - **1** / **2** / **3** — easy / medium / hard (board size)
 - **N** — new puzzle
-- **R** — restart the puzzle
+- **R** — restart the puzzle (or start a new one once it's solved)
 - **H** — hint
 - **Esc** — quit
 
@@ -157,4 +175,4 @@ consecutive pieces.
 - **↓** / **S** — soft drop
 - **Space** — hard drop
 - **P** — pause
-- **R** — restart (after game over)
+- **R** — restart
