@@ -49,7 +49,7 @@ GAMES = [
     ("Car Park", "car_park.py", "car_park.png", "pygame"),
     ("Flabby Bird", "flabby_bird.py", "flabby_bird.png", "pygame"),
     ("Mastermind", "mastermind.py", "mastermind.png", "pygame"),
-    ("Maze", "maze_game.py", "maze.png", "Tkinter"),
+    ("Maze", "maze_game.py", "maze.png", "pygame"),
     ("Minesweeper", "minesweeper.py", "minesweeper.png", "pygame"),
     ("Snake Escape", "snake_escape.py", "snake_escape.png", "pygame"),
     ("Sokoban", "sokoban.py", "sokoban.png", "pygame"),

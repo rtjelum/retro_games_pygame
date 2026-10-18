@@ -10,7 +10,7 @@ standard library.
 | [Car Park](#car-park) | `car_park.py` | pygame |
 | [Flabby Bird](#flabby-bird) | `flabby_bird.py` | pygame |
 | [Mastermind](#mastermind) | `mastermind.py` | pygame |
-| [Maze](#maze) | `maze_game.py` | Tkinter |
+| [Maze](#maze) | `maze_game.py` | pygame |
 | [Minesweeper](#minesweeper) | `minesweeper.py` | pygame |
 | [Snake Escape](#snake-escape) | `snake_escape.py` | pygame |
 | [Sokoban](#sokoban) | `sokoban.py` | pygame |
@@ -82,11 +82,16 @@ the wrong position.
 
 <img src="screenshots/maze.png" width="560" alt="Maze">
 
-Find your way from the top-left corner to the exit. Every maze is randomly
-generated.
+Guide the knight through the castle's stone corridors to slay the
+fire-breathing dragon in the far corner. Every maze is randomly generated, in
+three sizes: Easy (12×9), Medium (20×15) and Hard (32×24). A trail marks your
+path, and your best time for each size is kept for the session.
 
-- **Arrow keys** / **WASD** — move
-- **R** / **Enter** — new maze
+- **Arrow keys** / **WASD** — move (hold to keep going)
+- **1 / 2 / 3** — Easy / Medium / Hard
+- **N** / **R** — new maze (**Enter** too, after winning)
+- **H** — show the way
+- **Esc** — quit
 
 ### Minesweeper
 
