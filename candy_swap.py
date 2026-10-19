@@ -209,7 +209,7 @@ def blur(surface, amount):
 
 def body_mask(picture, inset):
     """The solid part of a candy picture, shrunk by `inset` pixels."""
-    mask = pygame.mask.from_surface(picture, 250)
+    mask = pygame.mask.from_surface(picture, 200)  # glass candies are slightly see-through
     inner = mask.copy()
     for a in range(0, 360, 45):
         shifted = pygame.mask.Mask(mask.get_size())
