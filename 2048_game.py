@@ -10,6 +10,18 @@ TILE_COLORS = {
     512: "#edb54e", 1024: "#eda53c", 2048: "#ed922e"
 }
 
+
+def center_window(window):
+    """Move the window to the middle of the screen, like the pygame games."""
+    window.withdraw()           # keep it hidden so it doesn't flash in the corner first
+    window.update_idletasks()   # lay out the widgets so the window knows its size
+    w, h = window.winfo_reqwidth(), window.winfo_reqheight()
+    x = (window.winfo_screenwidth() - w) // 2
+    y = (window.winfo_screenheight() - h) // 2
+    window.geometry(f"+{x}+{y}")
+    window.deiconify()
+
+
 class Game2048(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -146,4 +158,5 @@ class Game2048(tk.Tk):
 
 if __name__ == "__main__":
     game = Game2048()
+    center_window(game)
     game.mainloop()

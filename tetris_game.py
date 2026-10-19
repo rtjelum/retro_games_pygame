@@ -272,8 +272,20 @@ class Tetris:
         self.root.after(FALL_MS, self._tick)
 
 
+def center_window(window):
+    """Move the window to the middle of the screen, like the pygame games."""
+    window.withdraw()           # keep it hidden so it doesn't flash in the corner first
+    window.update_idletasks()   # lay out the widgets so the window knows its size
+    w, h = window.winfo_reqwidth(), window.winfo_reqheight()
+    x = (window.winfo_screenwidth() - w) // 2
+    y = (window.winfo_screenheight() - h) // 2
+    window.geometry(f"+{x}+{y}")
+    window.deiconify()
+
+
 # ----------------------------- Entry point -----------------------------
 if __name__ == "__main__":
     root = tk.Tk()
     Tetris(root)
+    center_window(root)
     root.mainloop()
