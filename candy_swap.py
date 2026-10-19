@@ -255,38 +255,11 @@ def wrapped(picture, color):
     return out
 
 
-def make_fish(color, size=256):
-    """A jelly fish-shaped candy with a big eye, drawn oversize for smooth edges."""
-    n = size * 4
-    k = n / 1024
-    body = pygame.Surface((n, n), pygame.SRCALPHA)
-    pygame.draw.polygon(body, mix(color, (0, 0, 0), 0.15),
-                        [(330 * k, 512 * k), (110 * k, 300 * k), (170 * k, 512 * k), (110 * k, 724 * k)])
-    pygame.draw.polygon(body, mix(color, (0, 0, 0), 0.15),
-                        [(480 * k, 330 * k), (600 * k, 210 * k), (690 * k, 330 * k)])
-    pygame.draw.ellipse(body, color, (250 * k, 300 * k, 650 * k, 430 * k))
-    mask = pygame.mask.from_surface(body)
-    out = pygame.Surface((n, n), pygame.SRCALPHA)
-    out.blit(mask.to_surface(setcolor=(0, 0, 0, 70), unsetcolor=(0, 0, 0, 0)), (0, round(34 * k)))
-    edge = mask.to_surface(setcolor=mix(color, (0, 0, 0), 0.6), unsetcolor=(0, 0, 0, 0))
-    for a in range(0, 360, 15):
-        out.blit(edge, (round(math.cos(math.radians(a)) * 22 * k), round(math.sin(math.radians(a)) * 22 * k)))
-    out.blit(body, (0, 0))
-    pygame.draw.ellipse(out, mix(color, WHITE, 0.45), (380 * k, 560 * k, 440 * k, 130 * k))  # belly
-    pygame.draw.ellipse(out, (255, 255, 255, 210), (430 * k, 350 * k, 230 * k, 70 * k))      # shine
-    pygame.draw.circle(out, WHITE, (735 * k, 460 * k), 74 * k)                                # eye
-    pygame.draw.circle(out, EDGE, (735 * k, 460 * k), 74 * k, round(12 * k))
-    pygame.draw.circle(out, EDGE, (752 * k, 466 * k), 38 * k)
-    pygame.draw.circle(out, WHITE, (764 * k, 452 * k), 13 * k)
-    pygame.draw.arc(out, EDGE, (760 * k, 520 * k, 110 * k, 90 * k), math.pi * 1.1, math.pi * 1.9,
-                    round(14 * k))                                                            # smile
-    return pygame.transform.smoothscale(out, (size, size))
-
-
 def load_candies(size):
     """Every candy picture, sized to fit a cell: plain, striped both ways, bomb, colour bomb."""
     # convert_alpha matches the screen's pixel layout, which makes drawing ~6x faster
     plain = [pygame.image.load(str(f)).convert_alpha() for f in sorted(CANDY_DIR.glob("candy_*.png"))]
+    fish = [pygame.image.load(str(f)).convert_alpha() for f in sorted(CANDY_DIR.glob("fish_*.png"))]
 
     def fit(picture):
         return pygame.transform.smoothscale(picture, (size, size))
@@ -296,7 +269,7 @@ def load_candies(size):
         "row": [fit(striped(p, True)) for p in plain],
         "col": [fit(striped(p, False)) for p in plain],
         "bomb": [fit(wrapped(p, COLORS[k])) for k, p in enumerate(plain)],
-        "fish": [fit(make_fish(color)) for color in COLORS],
+        "fish": [fit(p) for p in fish],
         "color": fit(pygame.image.load(str(CANDY_DIR / "color_bomb.png")).convert_alpha()),
     }
 
