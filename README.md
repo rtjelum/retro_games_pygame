@@ -27,6 +27,19 @@ This sets everything up and starts the game menu.
 
 <img src="screenshots/menu.png" width="560" alt="Game menu">
 
+## iPhone app
+
+2048, Candy Swap and Car Park are also an iPhone app, written in SwiftUI, with
+a menu to pick a game. Open `ios/RetroGames/RetroGames.xcodeproj` in Xcode,
+choose your phone or a simulator, and press Run. To install it on your own
+phone, pick your Apple ID under *Signing & Capabilities* first.
+
+- **2048** — swipe to slide the tiles
+- **Candy Swap** — tap a candy and then a neighbour, or swipe a candy onto a
+  neighbour; Hint and New Game buttons
+- **Car Park** — drag the vehicles; Easy / Medium / Hard, Undo, Hint, Restart
+  and New buttons
+
 ## The games
 
 ### 2048
