@@ -29,16 +29,18 @@ This sets everything up and starts the game menu.
 
 ## iPhone app
 
-2048, Candy Swap and Car Park are also an iPhone app, written in SwiftUI, with
-a menu to pick a game. Open `ios/RetroGames/RetroGames.xcodeproj` in Xcode,
-choose your phone or a simulator, and press Run. To install it on your own
-phone, pick your Apple ID under *Signing & Capabilities* first.
+2048, Candy Swap, Car Park and Snake Escape are also an iPhone app, written in
+SwiftUI, with a menu to pick a game. Open `ios/RetroGames/RetroGames.xcodeproj`
+in Xcode, choose your phone or a simulator, and press Run. To install it on your
+own phone, pick your Apple ID under *Signing & Capabilities* first.
 
 - **2048** — swipe to slide the tiles
 - **Candy Swap** — tap a candy and then a neighbour, or swipe a candy onto a
   neighbour; Hint and New Game buttons
 - **Car Park** — drag the vehicles; Easy / Medium / Hard, Undo, Hint, Restart
   and New buttons
+- **Snake Escape** — drag to turn the cube, pinch to zoom in, tap a snake to
+  send it off; Restart and New buttons
 
 ## The games
 
@@ -139,17 +141,19 @@ A 10×10 board hiding 15 mines.
 
 <img src="screenshots/snake_escape.png" width="320" alt="Snake Escape">
 
-Clear the board by sending the snakes off it one at a time. A snake slithers
-straight ahead, the way its arrow points, and only gets out if nothing is in
-its way; bump into another snake three times and the round is over. Every
-puzzle is generated on the spot and has exactly one solution: at any moment
-only one snake is free to go.
+Clear a 12×12×12 cube of about a hundred snakes by sending them off it one at
+a time. The snakes lie flat on the cube's faces, their bodies bending round its
+edges from one face to the next. A snake slithers straight ahead, the way its
+arrow points, across the face its head is on and off the edge into space — but
+only if nothing is in its way; every bump costs one of your three lives. Turn
+the cube to find the snakes round the back. Every puzzle is generated on the
+spot and can always be cleared, though only a few snakes are free to go at any
+moment.
 
+- **Drag** — turn the cube
 - **Click** a snake — send it off
-- **1** / **2** / **3** — easy / medium / hard (board size)
 - **N** — new puzzle
 - **R** — restart the puzzle (or start a new one once it's solved)
-- **H** — hint
 - **Esc** — quit
 
 ### Sokoban

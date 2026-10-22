@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum GameChoice: String, CaseIterable, Identifiable {
-    case game2048, candySwap, carPark
+    case game2048, candySwap, carPark, snakeEscape
     var id: String { rawValue }
 
     var title: String {
@@ -9,6 +9,7 @@ enum GameChoice: String, CaseIterable, Identifiable {
         case .game2048: return "2048"
         case .candySwap: return "Candy Swap"
         case .carPark: return "Car Park"
+        case .snakeEscape: return "Snake Escape"
         }
     }
 
@@ -17,6 +18,7 @@ enum GameChoice: String, CaseIterable, Identifiable {
         case .game2048: return "Slide and merge the tiles to reach 2048"
         case .candySwap: return "Swap candies to line up three or more"
         case .carPark: return "Clear the way for the red car"
+        case .snakeEscape: return "Turn the cube and send every snake off it"
         }
     }
 
@@ -25,6 +27,7 @@ enum GameChoice: String, CaseIterable, Identifiable {
         case .game2048: return "thumb_2048"
         case .candySwap: return "thumb_candy"
         case .carPark: return "thumb_carpark"
+        case .snakeEscape: return "thumb_snake"
         }
     }
 }
@@ -77,6 +80,9 @@ struct MenuView: View {
                     case .carPark:
                         CarParkView()
                             .toolbarBackground(.hidden, for: .navigationBar)
+                    case .snakeEscape:
+                        SnakeEscapeView()
+                            .toolbarBackground(.hidden, for: .navigationBar)
                     }
                 }
                 // Our own back arrow instead of the system one. Hiding the system back button
@@ -102,7 +108,7 @@ struct MenuView: View {
         .preferredColorScheme(path.last == .game2048 ? .light : .dark)
         .onAppear {
             #if DEBUG
-            // Launch with -open candySwap (or game2048 / carPark) to jump straight into a game
+            // Launch with -open candySwap (or game2048 / carPark / snakeEscape) to jump straight into a game
             let args = ProcessInfo.processInfo.arguments
             if let i = args.firstIndex(of: "-open"), i + 1 < args.count, let game = GameChoice(rawValue: args[i + 1]) {
                 path = [game]
