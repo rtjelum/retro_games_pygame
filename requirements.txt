@@ -1,3 +1,5 @@
 # Deps for retro games
 # ./.venv by setupenv.sh.
 pygame-ce
+# Optional: Snake Escape draws its box with Metal on macOS
+pyobjc-framework-Metal; sys_platform == "darwin"
