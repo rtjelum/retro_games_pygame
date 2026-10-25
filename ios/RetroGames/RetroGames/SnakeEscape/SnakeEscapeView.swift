@@ -31,6 +31,12 @@ private enum SE {
     static let sparks = 46                 // sparks thrown out where a blocked snake hits
     static let heartBreak = 0.9            // seconds for a lost heart to break and fall away
     static let slamTime = 0.28             // seconds for "Out of lives" to slam down
+
+    // Winning
+    static let winSpin = 0.35              // radians a second the box turns by itself once solved
+    static let burstEvery = 0.55           // seconds between fireworks
+    static let confetti = 120              // confetti pieces raining down
+    static let shineEvery = 2.8            // seconds between shines sweeping across the title
 }
 
 // MARK: - Turning the box
@@ -139,6 +145,12 @@ final class SnakeEscapeGame {
     var rings: [(origin: SIMD3<Double>, time: Double)] = []   // shock waves at impacts
     var breaking: [(heart: Int, time: Double)] = []          // hearts just lost
     var lostTime = 0.0                         // seconds since the last life went
+
+    // Winning
+    var wonTime = 0.0                          // seconds since the last snake got out
+    var playTime = 0.0                         // seconds the puzzle took
+    var winSeed: UInt64 = 0                    // picks where the confetti and fireworks go
+    private var startTime = Date()
     private var animating = false
 
     init() {
@@ -181,6 +193,8 @@ final class SnakeEscapeGame {
         rings = []
         breaking = []
         lostTime = 0
+        wonTime = 0
+        startTime = Date()
     }
 
     func isFree(_ id: Int) -> Bool {
@@ -210,7 +224,12 @@ final class SnakeEscapeGame {
             for cell in puzzle[id].cells { grid[cell] = nil }
             onBox.removeAll { $0 == id }
             leaving.append((id, 0, SE.exitSpeed))
-            if onBox.isEmpty { state = .won }
+            if onBox.isEmpty {
+                state = .won
+                wonTime = 0
+                playTime = Date().timeIntervalSince(startTime)
+                winSeed = .random(in: .min ... .max)
+            }
         }
         animate()
     }
@@ -242,6 +261,7 @@ final class SnakeEscapeGame {
     private var busy: Bool {
         !leaving.isEmpty || !bumps.isEmpty || hurt > 0 || shake > 0 || !sparks.isEmpty
             || !rings.isEmpty || !breaking.isEmpty || (state == .lost && lostTime < 0.6)
+            || state == .won   // the celebration keeps going until the next puzzle
     }
 
     private func animate() {
@@ -292,6 +312,10 @@ final class SnakeEscapeGame {
         for i in breaking.indices { breaking[i].time += dt }
         breaking.removeAll { $0.time >= SE.heartBreak }
         if state == .lost { lostTime += dt }
+        if state == .won {
+            wonTime += dt
+            view = straighten(turn(1, -SE.winSpin * dt) * view)
+        }
     }
 
     func rotate(by drag: CGSize) {
@@ -545,10 +569,7 @@ struct SnakeEscapeView: View {
         if game.generating {
             banner("Generating…", color: SE.text)
         } else if game.state == .won {
-            VStack(spacing: 14) {
-                banner("All out!", color: SE.text)
-                Button("New Puzzle") { game.newPuzzle() }.buttonStyle(CarParkButtonStyle())
-            }
+            WinScreen(game: game)
         } else if game.state == .lost {
             // The screen dims, then the words slam down from huge
             let landed = min(1, game.lostTime / SE.slamTime)
@@ -722,4 +743,328 @@ private struct BoxPainter {
 
 #Preview {
     SnakeEscapeView()
+}
+
+// MARK: - Winning
+
+/// 0 before `t` reaches 0, overshooting past 1 and settling there by `length`.
+private func pop(_ t: Double, _ length: Double = 0.35) -> Double {
+    guard t > 0 else { return 0 }
+    let f = min(1, t / length) - 1
+    return 1 + 2.70158 * f * f * f + 1.70158 * f * f
+}
+
+private func mix(_ a: SIMD3<Double>, _ b: SIMD3<Double>, _ f: Double) -> Color {
+    let c = a + (b - a) * f
+    return rgb(c.x, c.y, c.z)
+}
+
+/// Random numbers that come out the same every time from the same seed, so
+/// the confetti and fireworks can be worked out afresh for any moment.
+private struct Seeded {
+    var state: UInt64
+    init(_ seed: UInt64) { state = seed }
+
+    mutating func next() -> Double {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return Double((z ^ (z >> 31)) >> 11) / Double(1 << 53)
+    }
+
+    mutating func range(_ low: Double, _ high: Double) -> Double { low + (high - low) * next() }
+}
+
+/// One letter of the title as a shiny sweet: a gradient face with a wet
+/// highlight and bevelled rims, pushed out into a solid block, inside a dark
+/// outline (following glossy_letter in snake_escape.py). With `inside` it is
+/// just a white mask of the face less its rims, where the sweeping shine goes.
+private struct LetterArt: View {
+    static let font = Font.system(size: 72, weight: .black, design: .rounded)
+    static let depth = 9.0, slant = 0.35, outline = 3.5, pad = 6.0
+    static let insets = EdgeInsets(top: pad, leading: pad, bottom: pad + depth + 6,
+                                   trailing: pad + depth * slant + 6)
+
+    let letter: String
+    let color: SIMD3<Double>
+    var inside = false
+
+    var body: some View {
+        let black = SIMD3<Double>(0, 0, 0), white = SIMD3<Double>(255, 255, 255)
+        ZStack {
+            if inside {
+                shrunk(by: 2.5)
+            } else {
+                // A soft shadow on the scene behind, then the outline round the whole block
+                text.foregroundStyle(.black.opacity(0.35))
+                    .offset(x: Self.depth * Self.slant + 4, y: Self.depth + 5)
+                    .blur(radius: 3)
+                ForEach(Self.outlineSteps.indices, id: \.self) { i in
+                    text.foregroundStyle(rgb(10, 8, 22)).offset(Self.outlineSteps[i])
+                }
+                // The block's sides: darker the further back, with a lit band
+                // just behind the face like light catching a polished edge
+                ForEach((1...Int(Self.depth)).reversed(), id: \.self) { d in
+                    let f = Double(d) / Self.depth
+                    text.foregroundStyle(d <= 1 ? mix(color, white, 0.25) : mix(color, black, 0.35 + 0.4 * f))
+                        .offset(x: Double(d) * Self.slant, y: Double(d))
+                }
+                // The face: light at the top, deep at the bottom (the capitals
+                // fill roughly the middle 60% of the line)
+                text.foregroundStyle(LinearGradient(stops: [
+                    .init(color: mix(color, white, 0.5), location: 0.22),
+                    .init(color: mix(color, white, 0), location: 0.5),
+                    .init(color: mix(color, black, 0.45), location: 0.8),
+                ], startPoint: .top, endPoint: .bottom))
+                // Bevels: bright rims facing up and left, dark ones facing down and right
+                rim(dx: 1, dy: 1, .white).opacity(0.8)
+                rim(dx: 2.5, dy: 2.5, .white).opacity(0.3)
+                rim(dx: -1.5, dy: -1.5, .black).opacity(0.5)
+                gloss
+            }
+        }
+        .padding(Self.insets)
+    }
+
+    private var text: Text { Text(letter).font(Self.font) }
+
+    static let outlineSteps: [CGSize] = stride(from: 0.0, through: depth, by: 1.5).flatMap { d in
+        (0..<16).map { i in
+            let a = 2 * Double.pi * Double(i) / 16
+            return CGSize(width: d * slant + cos(a) * outline, height: d + sin(a) * outline)
+        }
+    }
+
+    /// The rim of the letter on the side facing (-dx, -dy).
+    private func rim(dx: Double, dy: Double, _ color: Color) -> some View {
+        ZStack {
+            text.foregroundStyle(color)
+            text.foregroundStyle(.black).offset(x: dx, y: dy).blendMode(.destinationOut)
+        }
+        .compositingGroup()
+    }
+
+    /// The letter in white with `by` points eaten off all round.
+    private func shrunk(by r: Double) -> some View {
+        var shape = AnyView(text.foregroundStyle(.white))
+        for i in 0..<8 {
+            let a = 2 * Double.pi * Double(i) / 8
+            shape = AnyView(shape.mask(text.offset(x: cos(a) * r, y: sin(a) * r)))
+        }
+        return shape
+    }
+
+    /// The wet highlight: a bright band over the top half with a curved lower
+    /// edge, kept off the rims, and a little sharp glint near the top left.
+    private var gloss: some View {
+        text.foregroundStyle(.clear)
+            .overlay {
+                GeometryReader { geo in
+                    let w = geo.size.width, h = geo.size.height
+                    ZStack {
+                        Ellipse()
+                            .fill(LinearGradient(stops: [
+                                .init(color: .white.opacity(0.85), location: 0.45),
+                                .init(color: .white.opacity(0.15), location: 1),
+                            ], startPoint: .top, endPoint: .bottom))
+                            .frame(width: w * 1.8, height: h * 0.7)
+                            .position(x: w / 2, y: h * 0.15)
+                        Capsule()
+                            .fill(.white.opacity(0.9))
+                            .frame(width: w * 0.3, height: h * 0.045)
+                            .position(x: w * 0.3, y: h * 0.3)
+                    }
+                }
+            }
+            .mask(shrunk(by: 2.5))
+    }
+}
+
+/// The title's letters, drawn once into pictures.
+@MainActor private enum WinTitle {
+    struct Letter {
+        let art: UIImage, inside: UIImage
+        let advance: Double    // how far along the next letter's face starts
+        let height: Double     // how tall the face is
+    }
+
+    static let letters: [Letter] = Array("ALL OUT!").enumerated().map { i, letter in
+        let c = SnakeEscape.colors[i * 3 % SnakeEscape.colors.count]
+        let color = SIMD3(c[0], c[1], c[2])
+        let art = picture(LetterArt(letter: String(letter), color: color))
+        let inside = picture(LetterArt(letter: String(letter), color: color, inside: true))
+        let insets = LetterArt.insets
+        return Letter(art: art, inside: inside,
+                      // The outlines and blocks crowd the gap between the words, so widen it
+                      advance: art.size.width - insets.leading - insets.trailing + (letter == " " ? 12 : 0),
+                      height: art.size.height - insets.top - insets.bottom)
+    }
+
+    private static func picture(_ view: LetterArt) -> UIImage {
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 3
+        return renderer.uiImage ?? UIImage()
+    }
+}
+
+/// The celebration once every snake is out: confetti, fireworks, the title
+/// dropping in a letter at a time and a card with how it went.
+private struct WinScreen: View {
+    let game: SnakeEscapeGame
+
+    var body: some View {
+        let t = game.wonTime
+        ZStack {
+            Color(red: 0, green: 0, blue: 0.04)
+                .opacity(0.45 * min(1, t / 0.6))
+                .ignoresSafeArea()
+            Celebration(time: t, seed: game.winSeed)
+                .ignoresSafeArea()
+            GeometryReader { geo in
+                VStack(spacing: 34) {
+                    title(t, width: geo.size.width - 24)
+                    card(t)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .allowsHitTesting(t > 1.2)
+    }
+
+    /// "ALL OUT!" drops in a letter at a time, then keeps bobbing, with a
+    /// shine sweeping across it now and then.
+    private func title(_ t: Double, width: Double) -> some View {
+        let letters = WinTitle.letters
+        let total = letters.map(\.advance).reduce(0, +)
+        let height = letters.map(\.height).max() ?? 0
+        let insets = LetterArt.insets
+        let sweep = t > 1.2 ? (t - 1.2).truncatingRemainder(dividingBy: SE.shineEvery) * 450 - 100 : -1000
+        var lefts: [Double] = [0]
+        for letter in letters { lefts.append(lefts.last! + letter.advance) }
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(letters.indices, id: \.self) { i in
+                let letter = letters[i]
+                let scale = pop(t - 0.15 - Double(i) * 0.07, 0.4)
+                // Turn and grow about the middle of the face, not the block behind it
+                let anchor = UnitPoint(x: (insets.leading + letter.advance / 2) / letter.art.size.width,
+                                       y: (insets.top + letter.height / 2) / letter.art.size.height)
+                Image(uiImage: letter.art)
+                    .overlay {
+                        Rectangle()
+                            .fill(.white.opacity(0.65))
+                            .frame(width: 20, height: letter.art.size.height * 1.5)
+                            .rotationEffect(.degrees(20))
+                            .position(x: insets.leading + sweep - lefts[i], y: letter.art.size.height / 2)
+                            .mask(Image(uiImage: letter.inside))
+                    }
+                    .scaleEffect(scale, anchor: anchor)
+                    .rotationEffect(.degrees(sin(t * 2.4 - Double(i) * 0.7) * 5), anchor: anchor)
+                    .offset(x: lefts[i] - insets.leading,
+                            y: sin(t * 3.2 - Double(i) * 0.55) * 4.5 - insets.top)
+                    .opacity(scale > 0.02 ? 1 : 0)
+            }
+        }
+        .frame(width: total, height: height, alignment: .topLeading)
+        .scaleEffect(min(1, width / total))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("All out!")
+    }
+
+    /// How long it took and how many lives were kept, rising up under the title.
+    private func card(_ t: Double) -> some View {
+        let f = pop(t - 0.8, 0.45)
+        let minutes = Int(game.playTime) / 60, seconds = Int(game.playTime) % 60
+        let lost = SnakeEscape.lives - game.lives
+        let settled = t > 1.1 + Double(SnakeEscape.lives) * 0.15
+        return VStack(spacing: 14) {
+            Text("Solved in \(minutes):\(String(format: "%02d", seconds))")
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .shadow(color: .black, radius: 0, x: 2, y: 2)
+            HStack(spacing: 18) {
+                ForEach(0..<SnakeEscape.lives, id: \.self) { i in
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 38))
+                        .foregroundStyle(i < game.lives ? SE.heart : SE.heartLost)
+                        .scaleEffect(pop(t - 1.1 - Double(i) * 0.15, 0.3))
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(game.lives) lives kept")
+            Text(lost == 0 ? "Flawless!" : "\(lost) \(lost == 1 ? "life" : "lives") lost")
+                .font(.system(size: 21, weight: .bold, design: .rounded))
+                .foregroundStyle(lost == 0 ? SE.text : SE.textDim)
+                .shadow(color: .black, radius: 0, x: 2, y: 2)
+                .opacity(settled ? 1 : 0)
+            Button("New Puzzle") { game.newPuzzle() }
+                .buttonStyle(CarParkButtonStyle())
+                .opacity(settled ? 1 : 0)
+        }
+        .padding(.vertical, 22)
+        .frame(width: 290)
+        .background(RoundedRectangle(cornerRadius: 24).fill(rgb(14, 16, 30).opacity(0.85)))
+        .overlay(RoundedRectangle(cornerRadius: 24).strokeBorder(SE.text, lineWidth: 2.5))
+        .opacity(min(1, f))
+        .offset(y: 40 * (1 - min(1, f)))
+    }
+}
+
+/// Confetti raining down and fireworks going off, worked out for the moment `time`.
+private struct Celebration: View {
+    let time: Double
+    let seed: UInt64
+
+    var body: some View {
+        Canvas { context, size in
+            var random = Seeded(seed)
+            for _ in 0..<SE.confetti {
+                let x0 = random.range(0, size.width), y0 = random.range(-size.height, -10)
+                let vx = random.range(-20, 20), vy = random.range(70, 150)
+                let phase = random.range(0, 2 * .pi), spin = random.range(-6, 6)
+                let color = SE.snakeColors[Int(random.next() * Double(SE.snakeColors.count))]
+                let y = y0 + vy * time
+                guard y < size.height + 10 else { continue }
+                // A small card turning over: its width swings as it spins
+                var piece = context
+                piece.translateBy(x: x0 + vx * time + 30 * sin(time * 2 + phase), y: y)
+                piece.rotate(by: .radians(phase + spin * time * 0.7))
+                let w = max(1, abs(6 * cos(phase + spin * time)))
+                piece.fill(Path(CGRect(x: -w / 2, y: -1.75, width: w, height: 3.5)), with: .color(color))
+            }
+
+            var start = 0.15, burst: UInt64 = 0
+            while start < time {
+                burst += 1
+                var random = Seeded(seed &+ burst &* 7919)
+                let center = CGPoint(x: random.range(60, size.width - 60),
+                                     y: random.range(size.height * 0.12, size.height * 0.45))
+                let pick = { (r: Double) in SE.snakeColors[Int(r * Double(SE.snakeColors.count))] }
+                let colors = [pick(random.next()), pick(random.next()), Color.white]
+                let age = time - start
+                if age < 1.6 {
+                    for _ in 0..<60 {
+                        let angle = random.range(0, 2 * .pi), speed = random.range(40, 190)
+                        let life = random.range(0.8, 1.5)
+                        let color = colors[Int(random.next() * 3)]
+                        guard age < life else { continue }
+                        // Slowed by the air, and falling a little
+                        let gone = (1 - exp(-1.6 * age)) / 1.6
+                        let now = speed * exp(-1.6 * age)
+                        let p = CGPoint(x: center.x + cos(angle) * speed * gone,
+                                        y: center.y + sin(angle) * speed * gone + 65 * age * age)
+                        var trail = Path()
+                        trail.move(to: p)
+                        trail.addLine(to: CGPoint(x: p.x - cos(angle) * now * 0.05,
+                                                  y: p.y - sin(angle) * now * 0.05 - 6 * age))
+                        context.stroke(trail, with: .color(color.opacity(min(1, (life - age) / 0.5))),
+                                       style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    }
+                }
+                start += SE.burstEvery * random.range(0.6, 1.4)
+            }
+        }
+        .allowsHitTesting(false)
+    }
 }

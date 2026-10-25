@@ -43,6 +43,12 @@ SHAKE = 11                        # pixels the screen shakes at a bump, more on 
 SPARKS = 46                       # sparks thrown out where a blocked snake hits
 HEART_BREAK = 0.9                 # seconds for a lost heart to break and fall away
 SLAM_TIME = 0.28                  # seconds for "Out of lives" to slam down
+WIN_SPIN = 0.35                   # radians a second the box turns by itself once solved
+BURST_EVERY = 0.55                # seconds between fireworks on the win screen
+CONFETTI = 170                    # confetti pieces raining down on the win screen
+TITLE_DEPTH = 16                  # pixels the win screen's letters stand out from the screen
+TITLE_OUTLINE = 6                 # pixels of dark outline round them
+SHINE_EVERY = 2.8                 # seconds between shines sweeping across them
 DRAG = 0.008                      # radians the box turns per pixel dragged
 CLICK_SLOP = 5                    # pixels the mouse may wander in a click
 TILT, SPIN = 0.45, 0.6            # radians the box is tipped forward and turned at the start
@@ -658,6 +664,108 @@ def heart_surface(color, scale=1.0):
     return surface
 
 
+def mix(a, b, f):
+    return tuple(round(x + (y - x) * f) for x, y in zip(a, b))
+
+
+def tinted(shape, color, alpha=255):
+    """A white-on-clear shape filled with `color` instead, keeping its soft edges."""
+    surface = shape.copy()
+    surface.fill((*color, alpha), special_flags=pygame.BLEND_RGBA_MULT)
+    return surface
+
+
+def edge(shape, dx, dy):
+    """The rim of a white shape on the side facing (-dx, -dy), as white on clear."""
+    rim = shape.copy()
+    rim.blit(tinted(shape, (0, 0, 0)), (dx, dy), special_flags=pygame.BLEND_RGBA_SUB)
+    return rim
+
+
+def shrunk(shape, by):
+    """A white shape with `by` pixels eaten off all round."""
+    inner = shape.copy()
+    for i in range(8):
+        a = 2 * math.pi * i / 8
+        inner.blit(shape, (round(math.cos(a) * by), round(math.sin(a) * by)),
+                   special_flags=pygame.BLEND_RGBA_MULT)
+    return inner
+
+
+def glossy_letter(font, letter, color):
+    """A letter like a shiny sweet: a gradient face with a wet highlight and
+    bevelled rims, pushed out into a solid block, all inside a dark outline.
+
+    Returns the letter's surface, how far along to put the next letter, and
+    where on the surface the face sits with a white mask of its inside, for
+    the shine that sweeps across the title.
+    """
+    shape = font.render(letter, True, WHITE)
+    w, h = shape.get_size()
+    pad = TITLE_OUTLINE + 2
+    slant = 0.35   # the block goes back down and a little to the right
+    surface = pygame.Surface((w + 2 * pad + round(TITLE_DEPTH * slant) + 12,
+                              h + 2 * pad + TITLE_DEPTH + 12), pygame.SRCALPHA)
+
+    # A soft shadow on the scene behind, then the outline round the whole block
+    surface.blit(tinted(shape, (0, 0, 0), 90), (pad + TITLE_DEPTH * slant + 8, pad + TITLE_DEPTH + 10))
+    dark = tinted(shape, (10, 8, 22))
+    for d in range(0, TITLE_DEPTH + 1, 2):
+        for i in range(16):
+            a = 2 * math.pi * i / 16
+            surface.blit(dark, (pad + d * slant + math.cos(a) * TITLE_OUTLINE,
+                                pad + d + math.sin(a) * TITLE_OUTLINE))
+
+    # The block's sides: darker the further back, with a lit band just
+    # behind the face like light catching a polished edge
+    for d in range(TITLE_DEPTH, 0, -1):
+        f = d / TITLE_DEPTH
+        side = mix(color, (0, 0, 0), 0.35 + 0.4 * f)
+        if d <= 2:
+            side = mix(color, WHITE, 0.25)
+        surface.blit(tinted(shape, side), (pad + d * slant, pad + d))
+
+    # The face: light at the top, deep at the bottom
+    face = pygame.Surface((w, h), pygame.SRCALPHA)
+    top, middle, bottom = mix(color, WHITE, 0.5), color, mix(color, (0, 0, 0), 0.45)
+    for y in range(h):
+        f = y / max(1, h - 1)
+        shade = mix(top, middle, f / 0.5) if f < 0.5 else mix(middle, bottom, (f - 0.5) / 0.5)
+        pygame.draw.line(face, shade, (0, y), (w, y))
+    face.blit(shape, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+    # Bevels: bright rims facing up and left, dark ones facing down and right
+    for shift, alpha in ((1, 200), (3, 110), (5, 50)):
+        face.blit(tinted(edge(shape, shift, shift), WHITE, alpha), (0, 0))
+        face.blit(tinted(edge(shape, -shift, -shift), (0, 0, 0), alpha * 2 // 3), (0, 0))
+
+    # The wet highlight: a bright band over the top half with a curved lower
+    # edge, kept off the rims, and a little sharp glint near the top left
+    inner = shrunk(shape, 5)
+    gloss = pygame.Surface((w, h), pygame.SRCALPHA)
+    for y in range(h // 2):
+        pygame.draw.line(gloss, (255, 255, 255, round(190 * (1 - y / (h / 2)) ** 0.7 + 25)), (0, y), (w, y))
+    curve = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(curve, WHITE, (-w * 0.4, -h * 0.62, w * 1.8, h * 1.12))
+    gloss.blit(curve, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    glint = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(glint, (255, 255, 255, 235), (w * 0.12, h * 0.17, w * 0.3, h * 0.06))
+    gloss.blit(glint, (0, 0))
+    gloss.blit(inner, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    face.blit(gloss, (0, 0))
+
+    surface.blit(face, (pad, pad))
+    return surface, w, (pad, pad), inner
+
+
+def pop(t, length=0.35):
+    """0 before `t` reaches 0, overshooting past 1 and settling there by `length`."""
+    if t <= 0:
+        return 0.0
+    f = min(1.0, t / length) - 1
+    return 1 + 2.70158 * f ** 3 + 1.70158 * f ** 2
+
+
 def make_vignette():
     """Red that is clear in the middle of the window and thick round its edges."""
     surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -680,6 +788,12 @@ class SnakeEscape:
         self.font = pygame.font.Font(None, 34)
         self.small_font = pygame.font.Font(None, 22)
         self.big_font = pygame.font.Font(None, 76)
+        self.mid_font = pygame.font.Font(None, 46)
+        title_font = pygame.font.SysFont("arialblack", 132)
+        if title_font.get_height() < 100:  # no Arial Black: the default font is smaller
+            title_font = pygame.font.Font(None, 190)
+        self.title = [glossy_letter(title_font, letter, COLORS[i * 3 % len(COLORS)])
+                      for i, letter in enumerate("ALL OUT!")]
         self.backdrop = make_backdrop()
         self.vignette = make_vignette()
         self.gpu = metal_box()
@@ -722,6 +836,11 @@ class SnakeEscape:
         self.rings = []         # [x, y, seconds so far]: shock waves at impacts
         self.breaking = []      # [heart number, seconds so far] for hearts just lost
         self.lost_time = 0.0    # seconds since the last life went
+        self.play_time = 0.0    # seconds spent on this puzzle
+        self.won_time = 0.0     # seconds since the last snake got out
+        self.fireworks = []     # [x, y, vx, vy, seconds left, colour] in screen pixels
+        self.confetti = []      # [x, y, vx, vy, angle, spin, colour]
+        self.next_burst = 0.0   # seconds until the next firework
 
     def send(self, snake):
         """Sets a snake off; it leaves if its way is clear and bumps if not."""
@@ -740,7 +859,22 @@ class SnakeEscape:
         self.snakes.remove(snake)
         self.leaving.append([snake, 0.0, EXIT_SPEED])
         if not self.snakes:
-            self.state = "won"
+            self.state, self.won_time = "won", 0.0
+            self.confetti = [[random.uniform(0, WIDTH), random.uniform(-HEIGHT, -20),
+                              random.uniform(-40, 40), random.uniform(140, 300),
+                              random.uniform(0, 360), random.uniform(-400, 400),
+                              random.choice(COLORS)] for _ in range(CONFETTI)]
+            self.next_burst = 0.15
+
+    def burst(self):
+        """A firework goes off somewhere above the middle of the window."""
+        x, y = random.uniform(120, WIDTH - 120), random.uniform(110, 420)
+        colors = random.sample(COLORS, 2) + [WHITE]
+        for _ in range(70):
+            angle = random.uniform(0, 2 * math.pi)
+            speed = random.uniform(80, 380)
+            self.fireworks.append([x, y, math.cos(angle) * speed, math.sin(angle) * speed,
+                                   random.uniform(0.8, 1.5), random.choice(colors)])
 
     def impact(self, snake, free):
         """A blocked snake hits the one in its way: a life goes, with a bang."""
@@ -791,6 +925,28 @@ class SnakeEscape:
         self.breaking = [item for item in self.breaking if item[1] < HEART_BREAK]
         if self.state == "lost":
             self.lost_time += dt
+        elif self.state == "playing":
+            self.play_time += dt
+        elif self.state == "won":
+            self.won_time += dt
+            if not self.press:
+                self.view = straighten(matmul(turn(1, -WIN_SPIN * dt), self.view))
+            self.next_burst -= dt
+            if self.next_burst <= 0:
+                self.burst()
+                self.next_burst = BURST_EVERY * random.uniform(0.6, 1.4)
+        for spark in self.fireworks:
+            spark[2] *= 1 - 1.6 * dt
+            spark[3] = spark[3] * (1 - 1.6 * dt) + 260 * dt
+            spark[0] += spark[2] * dt
+            spark[1] += spark[3] * dt
+            spark[4] -= dt
+        self.fireworks = [spark for spark in self.fireworks if spark[4] > 0]
+        for piece in self.confetti:
+            piece[0] += (piece[2] + 60 * math.sin(piece[1] / 40 + piece[5])) * dt
+            piece[1] += piece[3] * dt
+            piece[4] += piece[5] * dt
+        self.confetti = [piece for piece in self.confetti if piece[1] < HEIGHT + 20]
 
     def rotate(self, dx, dy):
         self.view = straighten(matmul(turn(0, dy * DRAG), matmul(turn(1, -dx * DRAG), self.view)))
@@ -994,9 +1150,7 @@ class SnakeEscape:
         self.draw_text(keys, self.small_font, TEXT_DIM, center=(WIDTH // 2, HEIGHT - 34))
 
         if self.state == "won":
-            self.draw_text("All out!", self.big_font, TEXT, shadow=3, center=CENTER)
-            self.draw_text("R = new puzzle", self.small_font, WHITE, shadow=2,
-                           center=(CENTER[0], CENTER[1] + 50))
+            self.draw_win()
         elif self.state == "lost":
             # The screen dims, then the words slam down from huge
             dim = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -1012,6 +1166,83 @@ class SnakeEscape:
             if f == 1:
                 self.draw_text("R = try again   N = new puzzle", self.small_font, WHITE, shadow=2,
                                center=(CENTER[0], CENTER[1] + 50))
+
+    def draw_win(self):
+        """The celebration once every snake is out."""
+        t = self.won_time
+        dim = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        dim.fill((0, 0, 10, round(120 * min(1.0, t / 0.6))))
+        self.screen.blit(dim, (0, 0))
+
+        for x, y, vx, vy, left, color in self.fireworks:
+            fade = min(1.0, left / 0.5)
+            shade = [round(c * fade) for c in color]
+            pygame.draw.line(self.screen, shade, (x, y), (x - vx * 0.04, y - vy * 0.04), 3)
+        for x, y, _, _, angle, _, color in self.confetti:
+            # A small card turning over: its width swings with the angle
+            w = max(1, abs(round(10 * math.cos(math.radians(angle)))))
+            piece = pygame.Surface((w, 6), pygame.SRCALPHA)
+            piece.fill(color)
+            piece = pygame.transform.rotate(piece, angle * 0.7)
+            self.screen.blit(piece, piece.get_rect(center=(x, y)))
+
+        # "ALL OUT!" drops in a letter at a time, then keeps bobbing, with a
+        # shine sweeping across it now and then
+        x = CENTER[0] - sum(advance for _, advance, _, _ in self.title) / 2
+        sweep = (t - 1.2) % SHINE_EVERY * 900 - 200 if t > 1.2 else -1000
+        for i, (letter, advance, (fx, fy), inner) in enumerate(self.title):
+            scale = pop(t - 0.15 - i * 0.07, 0.4)
+            if scale > 0.02:
+                left = x - CENTER[0] + sum(a for _, a, _, _ in self.title) / 2
+                band = sweep - left
+                if -120 < band < advance + 120:
+                    letter = letter.copy()
+                    shine = pygame.Surface(inner.get_size(), pygame.SRCALPHA)
+                    h = inner.get_height()
+                    pygame.draw.polygon(shine, (255, 255, 255, 170), [
+                        (band, 0), (band + 46, 0), (band + 46 - h * 0.4, h), (band - h * 0.4, h)])
+                    shine.blit(inner, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    letter.blit(shine, (fx, fy))
+                bob = math.sin(t * 3.2 - i * 0.55) * 9
+                tilt = math.sin(t * 2.4 - i * 0.7) * 5
+                shown = pygame.transform.rotozoom(letter, tilt, scale)
+                # Centre on the face, not the block hanging off behind it
+                cx = x + advance / 2 + (letter.get_width() / 2 - fx - advance / 2) * scale
+                cy = 300 + bob + (letter.get_height() / 2 - fy - inner.get_height() / 2) * scale
+                self.screen.blit(shown, shown.get_rect(center=(cx, cy)))
+            x += advance
+
+        # The results panel rises up under the title
+        f = pop(t - 0.8, 0.45)
+        if f <= 0:
+            return
+        panel = pygame.Rect(0, 0, 500, 250)
+        panel.center = (CENTER[0], 560 + round(60 * (1 - min(f, 1.0))))
+        card = pygame.Surface(panel.size, pygame.SRCALPHA)
+        pygame.draw.rect(card, (14, 16, 30, 215), card.get_rect(), border_radius=26)
+        pygame.draw.rect(card, (*TEXT, 255), card.get_rect(), 3, border_radius=26)
+        card.set_alpha(round(255 * min(1.0, f)))
+        self.screen.blit(card, panel)
+
+        minutes, seconds = divmod(int(self.play_time), 60)
+        self.draw_text(f"Solved in {minutes}:{seconds:02d}", self.mid_font, WHITE, shadow=2,
+                       center=(panel.centerx, panel.top + 48))
+        for i in range(LIVES):
+            size = pop(t - 1.1 - i * 0.15, 0.3)
+            if size > 0.02:
+                heart = heart_surface(HEART if i < self.lives else HEART_LOST, 1.9 * size)
+                self.screen.blit(heart, heart.get_rect(
+                    center=(panel.centerx + (i - (LIVES - 1) / 2) * 72, panel.top + 120)))
+        if t > 1.1 + LIVES * 0.15:
+            lost = LIVES - self.lives
+            verdict = ("Flawless!", TEXT) if not lost else (
+                f"{lost} {'life' if lost == 1 else 'lives'} lost", TEXT_DIM)
+            self.draw_text(verdict[0], self.font, verdict[1], shadow=2,
+                           center=(panel.centerx, panel.top + 174))
+            glow = 0.75 + 0.25 * math.sin(t * 4)
+            self.draw_text("Press R or N for a new puzzle", self.small_font,
+                           [round(c * glow) for c in WHITE],
+                           center=(panel.centerx, panel.bottom - 28))
 
     def draw(self):
         self.draw_board()
