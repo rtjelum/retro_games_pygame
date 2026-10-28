@@ -1,14 +1,14 @@
 import SwiftUI
 
 enum GameChoice: String, CaseIterable, Identifiable {
-    case game2048, candySwap, carPark, snakeEscape
+    case game2048, candySwap, sudoku, snakeEscape
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .game2048: return "2048"
         case .candySwap: return "Candy Swap"
-        case .carPark: return "Car Park"
+        case .sudoku: return "Sudoku"
         case .snakeEscape: return "Snake Escape"
         }
     }
@@ -17,7 +17,7 @@ enum GameChoice: String, CaseIterable, Identifiable {
         switch self {
         case .game2048: return "Slide and merge the tiles to reach 2048"
         case .candySwap: return "Swap candies to line up three or more"
-        case .carPark: return "Clear the way for the red car"
+        case .sudoku: return "Tap a square to see which numbers fit"
         case .snakeEscape: return "Turn the cube and send every snake off it"
         }
     }
@@ -26,7 +26,7 @@ enum GameChoice: String, CaseIterable, Identifiable {
         switch self {
         case .game2048: return "thumb_2048"
         case .candySwap: return "thumb_candy"
-        case .carPark: return "thumb_carpark"
+        case .sudoku: return "thumb_sudoku"
         case .snakeEscape: return "thumb_snake"
         }
     }
@@ -77,8 +77,8 @@ struct MenuView: View {
                     case .candySwap:
                         CandySwapView()
                             .toolbarBackground(.hidden, for: .navigationBar)
-                    case .carPark:
-                        CarParkView()
+                    case .sudoku:
+                        SudokuView()
                             .toolbarBackground(.hidden, for: .navigationBar)
                     case .snakeEscape:
                         SnakeEscapeView()
@@ -108,7 +108,7 @@ struct MenuView: View {
         .preferredColorScheme(path.last == .game2048 ? .light : .dark)
         .onAppear {
             #if DEBUG
-            // Launch with -open candySwap (or game2048 / carPark / snakeEscape) to jump straight into a game
+            // Launch with -open candySwap (or game2048 / sudoku / snakeEscape) to jump straight into a game
             let args = ProcessInfo.processInfo.arguments
             if let i = args.firstIndex(of: "-open"), i + 1 < args.count, let game = GameChoice(rawValue: args[i + 1]) {
                 path = [game]

@@ -23,6 +23,7 @@ CONFETTI_COLORS = [(225, 50, 50), (50, 190, 80), (50, 110, 235), (245, 205, 40),
 
 # Game Settings
 CELL_SIZE = WIDTH // 9
+CLEAR, CLOSE = 0, -1  # special buttons in the number picker
 
 class SudokuGenerator:
     """Handles the generation of valid Sudoku boards."""
@@ -88,11 +89,13 @@ class SudokuGame:
         self.fixed_cells = [[(self.board[r][c] != 0) for c in range(9)] for r in range(9)]
         
         self.selected = None
+        self.picker = None  # (row, col, frame, [(rect, value)]) while the number strip is open
         self.won = False
         self.confetti = []
         self.dt = 0
         self.font = pygame.font.SysFont("comicsans", 40)
         self.small_font = pygame.font.SysFont("comicsans", 20)
+        self.picker_font = pygame.font.SysFont("comicsans", 52)
 
     def draw(self):
         SCREEN.fill(WHITE)
@@ -124,10 +127,71 @@ class SudokuGame:
             instr = self.small_font.render("Solved! Press 'R' for a new puzzle", True, GREEN)
             SCREEN.blit(instr, instr.get_rect(center=(WIDTH // 2, 570)))
         else:
-            instr = self.small_font.render("Press 'R' to Regenerate | Click to select | Type to fill", True, BLACK)
+            instr = self.small_font.render("R: new puzzle | Tap a square to pick a number", True, BLACK)
             SCREEN.blit(instr, (10, 550))
 
+        self.draw_picker()
         self.draw_confetti()
+
+    def candidates(self, r, c):
+        """Numbers that don't clash with the cell's row, column or box."""
+        used = set(self.board[r]) | {self.board[i][c] for i in range(9)}
+        br, bc = 3 * (r // 3), 3 * (c // 3)
+        used |= {self.board[br + i][bc + j] for i in range(3) for j in range(3)}
+        used.discard(self.board[r][c])  # the cell's own value doesn't block itself
+        return [n for n in range(1, 10) if n not in used]
+
+    def open_picker(self, r, c):
+        """Build a strip of big number buttons just above (or below) the cell."""
+        values = self.candidates(r, c)
+        if self.board[r][c] != 0:
+            values.append(CLEAR)  # erase a number the player entered
+        values.append(CLOSE)
+        gap = 6
+        # Big, finger-sized buttons, shrunk only if they wouldn't fit the width
+        size = min(72, (WIDTH - 4 - gap * (len(values) + 1)) // len(values))
+        width = len(values) * (size + gap) + gap
+        height = size + gap * 2
+        x = c * CELL_SIZE + CELL_SIZE // 2 - width // 2
+        x = max(2, min(x, WIDTH - width - 2))
+        y = r * CELL_SIZE - height - 4
+        if y < 2:
+            y = (r + 1) * CELL_SIZE + 4
+        buttons = []
+        for i, v in enumerate(values):
+            rect = pygame.Rect(x + gap + i * (size + gap), y + gap, size, size)
+            buttons.append((rect, v))
+        self.picker = (r, c, pygame.Rect(x, y, width, height), buttons)
+
+    def draw_picker(self):
+        if not self.picker:
+            return
+        r, c, frame, buttons = self.picker
+        pygame.draw.rect(SCREEN, (120, 120, 120), frame.move(3, 3), border_radius=12)
+        pygame.draw.rect(SCREEN, (245, 248, 255), frame, border_radius=12)
+        pygame.draw.rect(SCREEN, BLUE, frame, 2, border_radius=12)
+        for rect, v in buttons:
+            if v == CLOSE:
+                pygame.draw.rect(SCREEN, (225, 225, 230), rect, border_radius=10)
+                d = rect.width // 4
+                for a, b in (((rect.left + d, rect.top + d), (rect.right - d, rect.bottom - d)),
+                             ((rect.right - d, rect.top + d), (rect.left + d, rect.bottom - d))):
+                    pygame.draw.line(SCREEN, (90, 90, 100), a, b, 5)
+            elif v == CLEAR:
+                pygame.draw.rect(SCREEN, (255, 225, 225), rect, border_radius=10)
+                text = self.small_font.render("Clear", True, (200, 40, 40))
+                SCREEN.blit(text, text.get_rect(center=rect.center))
+            else:
+                pygame.draw.rect(SCREEN, (220, 232, 255), rect, border_radius=10)
+                text = self.picker_font.render(str(v), True, BLUE)
+                SCREEN.blit(text, text.get_rect(center=rect.center))
+
+    def set_cell(self, r, c, val):
+        self.board[r][c] = val
+        if self.is_solved():
+            self.won = True
+            self.selected = None
+            self.spawn_confetti()
 
     def spawn_confetti(self):
         for _ in range(160):
@@ -165,11 +229,24 @@ class SudokuGame:
         return True
 
     def handle_click(self, pos):
+        """Tap/click: pick a number from the strip, or select a cell."""
+        if self.picker:
+            r, c, frame, buttons = self.picker
+            self.picker = None
+            for rect, v in buttons:
+                if rect.collidepoint(pos):
+                    if v != CLOSE:
+                        self.set_cell(r, c, v)
+                    return
+            if frame.collidepoint(pos):
+                return  # tapped the strip's border, just close it
         x, y = pos
         col = x // CELL_SIZE
         row = y // CELL_SIZE
         if 0 <= row < 9 and 0 <= col < 9:
             self.selected = (row, col)
+            if not self.won and not self.fixed_cells[row][col]:
+                self.open_picker(row, col)
 
     def handle_key(self, key):
         if self.selected:
@@ -186,6 +263,7 @@ class SudokuGame:
         self.board = self.generator.generate_puzzle(difficulty=40)
         self.fixed_cells = [[(self.board[r][c] != 0) for c in range(9)] for r in range(9)]
         self.selected = None
+        self.picker = None
         self.won = False
         self.confetti = []
 
@@ -202,9 +280,7 @@ def main():
                 sys.exit()
             
             if event.type == pygame.MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
-                if y < WIDTH: # Ensure we aren't clicking the bottom UI area
-                    game.selected = (y // CELL_SIZE, x // CELL_SIZE)
+                game.handle_click(event.pos)
             
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
@@ -215,12 +291,13 @@ def main():
                         r, c = game.selected
                         if not game.fixed_cells[r][c]:
                             if event.unicode.isdigit():
-                                game.board[r][c] = int(event.unicode)
+                                game.picker = None
+                                game.set_cell(r, c, int(event.unicode))
                             elif event.key in [pygame.K_BACKSPACE, pygame.K_DELETE]:
-                                game.board[r][c] = 0
-                            if game.is_solved():
-                                game.won = True
-                                game.spawn_confetti()
+                                game.picker = None
+                                game.set_cell(r, c, 0)
+                            elif event.key == pygame.K_ESCAPE:
+                                game.picker = None
 
         pygame.display.flip()
         game.dt = clock.tick(60) / 1000
